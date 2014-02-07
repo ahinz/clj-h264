@@ -47,3 +47,22 @@
       (let [bit (= 0x80 (bit-and 0x80 byte))]
         [bit (assoc bitstream :idx (+ 1 idx) :byte (bit-shift-left byte 1))])
       (next-bit (assoc bitstream :idx 0 :byte (getb (:buffer bitstream)))))))
+
+(defn- leading-zeros [bitstream n]
+  (let [[bit bitstream] bitstream]
+    (if bit [n bitstream] (recur bitstream (+ n 1)))))
+
+(defn- read-bits [bitstream n v]
+  (if (<= n 0) v
+      (let [[bit bitstream] (next-bit bitstream)
+            bit (if bit 1 0)
+            v (bit-or (bit-shift-left v 1) bit)]
+        (recur bitstream (- n 1) v))))
+
+(defn ue [bitstream]
+  (let [[leading-bits bitstream] (leading-zeros bitstream)
+        [bits bitstream] (read-bits bitstream leading-bits 0)]
+    [(+ (bit-shift-right 1 leading-bits)
+        -1
+        bits)
+     bitstream]))
