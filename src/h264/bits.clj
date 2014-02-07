@@ -38,7 +38,7 @@
   (position buffer (+ (position buffer) bytes)))
 
 (defn create-bit-stream [buffer]
-  {:buffer buffer :byte 0 :idx 0})
+  {:buffer buffer :byte 0 :idx 8})
 
 (defn next-bit [bitstream]
   (let [byte (:byte bitstream)
@@ -49,20 +49,20 @@
       (next-bit (assoc bitstream :idx 0 :byte (getb (:buffer bitstream)))))))
 
 (defn- leading-zeros [bitstream n]
-  (let [[bit bitstream] bitstream]
+  (let [[bit bitstream] (next-bit bitstream)]
     (if bit [n bitstream] (recur bitstream (+ n 1)))))
 
 (defn- read-bits [bitstream n v]
-  (if (<= n 0) v
+  (if (<= n 0) [v bitstream]
       (let [[bit bitstream] (next-bit bitstream)
             bit (if bit 1 0)
             v (bit-or (bit-shift-left v 1) bit)]
         (recur bitstream (- n 1) v))))
 
 (defn ue [bitstream]
-  (let [[leading-bits bitstream] (leading-zeros bitstream)
+  (let [[leading-bits bitstream] (leading-zeros bitstream 0)
         [bits bitstream] (read-bits bitstream leading-bits 0)]
-    [(+ (bit-shift-right 1 leading-bits)
+    [(+ (bit-shift-left 1 leading-bits)
         -1
         bits)
      bitstream]))
